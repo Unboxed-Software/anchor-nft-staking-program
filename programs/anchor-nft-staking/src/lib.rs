@@ -38,7 +38,7 @@ pub mod anchor_nft_staking {
         msg!("Freezing token account");
         let authority_bump = *ctx.bumps.get("program_authority").unwrap();
         invoke_signed(
-            &mpl_token_metadata::instruction::freeze_delegated_account(
+            &freeze_delegated_account(
                 ctx.accounts.metadata_program.key(),
                 ctx.accounts.program_authority.key(),
                 ctx.accounts.nft_token_account.key(),
@@ -86,8 +86,8 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
-        let redeem_amount = unix_time * 100;
-        msg!("Elligible redeem amount: {}", redeem_amount / 100);
+        let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        msg!("Elligible redeem amount: {}", redeem_amount);
 
         msg!("Minting staking rewards");
         token::mint_to(
@@ -129,7 +129,7 @@ pub mod anchor_nft_staking {
         msg!("Thawing token account");
         let authority_bump = *ctx.bumps.get("program_authority").unwrap();
         invoke_signed(
-            &mpl_token_metadata::instruction::thaw_delegated_account(
+            &thaw_delegated_account(
                 ctx.accounts.metadata_program.key(),
                 ctx.accounts.program_authority.key(),
                 ctx.accounts.nft_token_account.key(),
@@ -167,8 +167,8 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
-        let redeem_amount = unix_time * 100;
-        msg!("Elligible redeem amount: {}", redeem_amount / 100);
+        let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        msg!("Elligible redeem amount: {}", redeem_amount);
 
         msg!("Minting staking rewards");
         token::mint_to(
