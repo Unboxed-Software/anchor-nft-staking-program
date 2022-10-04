@@ -30,6 +30,11 @@ pub mod lootbox_program {
             }
         }
 
+        require!(
+            !ctx.accounts.lootbox_pointer.is_initialized || ctx.accounts.lootbox_pointer.claimed,
+            LootboxError::InvalidLootbox
+        );
+
         token::burn(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
