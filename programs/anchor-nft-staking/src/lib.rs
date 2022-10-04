@@ -10,7 +10,7 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-declare_id!("3CUC1Enh3GF7X1vE7ixm1Aq7cv1fTqY7UZvnDoz7X9sZ");
+declare_id!("2uE2DSDFoz9qendAdDpFL4wQ79cX2M4m3DFGX41KQ5YX");
 
 #[program]
 pub mod anchor_nft_staking {
@@ -86,6 +86,8 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
+        // Swap the next two lines out between prod/testing
+        // let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
@@ -107,6 +109,7 @@ pub mod anchor_nft_staking {
         )?;
 
         ctx.accounts.stake_state.last_stake_redeem = clock.unix_timestamp;
+        ctx.accounts.stake_state.total_earned += redeem_amount as u64;
         msg!(
             "Updated last stake redeem time: {:?}",
             ctx.accounts.stake_state.last_stake_redeem
@@ -167,6 +170,8 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
+        // Swap the next two lines out between prod/testing
+        // let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
@@ -188,6 +193,7 @@ pub mod anchor_nft_staking {
         )?;
 
         ctx.accounts.stake_state.last_stake_redeem = clock.unix_timestamp;
+        ctx.accounts.stake_state.total_earned += redeem_amount as u64;
         msg!(
             "Updated last stake redeem time: {:?}",
             ctx.accounts.stake_state.last_stake_redeem
@@ -299,7 +305,7 @@ pub struct Unstake<'info> {
         associated_token::mint=stake_mint,
         associated_token::authority=user
     )]
-    pub user_stake_ata: Account<'info, TokenAccount>,
+    pub user_stake_ata: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -321,6 +327,7 @@ pub struct UserStakeInfo {
     pub token_account: Pubkey,
     pub stake_start_time: i64,
     pub last_stake_redeem: i64,
+    pub total_earned: u64,
     pub user_pubkey: Pubkey,
     pub stake_state: StakeState,
     pub is_initialized: bool,
