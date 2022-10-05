@@ -19,6 +19,7 @@ pub struct ConsumeRandomness<'info> {
     bump  
   )]
   pub lootbox_pointer: Account<'info, LootboxPointer>,
+  /// CHECK: not important...
   pub payer: AccountInfo<'info>,
 }
 

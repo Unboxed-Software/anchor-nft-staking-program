@@ -20,4 +20,5 @@ pub struct UserState {
   pub mint: Pubkey,
   pub token_account: Pubkey,
   pub redeemable: bool,
+  pub user: Pubkey,
 }

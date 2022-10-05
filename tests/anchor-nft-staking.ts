@@ -10,9 +10,11 @@ import {
   getAccount,
   createMint,
   mintToChecked,
-} from "@solana/spl-token"
+} from "@solana/spl-token-real"
 import { expect } from "chai"
 import { BN } from "@project-serum/anchor"
+import { SwitchboardTestContext } from "@switchboard-xyz/sbv2-utils"
+import * as sbv2 from "@switchboard-xyz/switchboard-v2"
 
 describe("anchor-nft-staking", () => {
   // Configure the client to use the local cluster.
@@ -33,9 +35,43 @@ describe("anchor-nft-staking", () => {
   let mint: anchor.web3.PublicKey
   let tokenAddress: anchor.web3.PublicKey
 
+  let switchboard: SwitchboardTestContext
+  let userState: anchor.web3.PublicKey
+  let userStateBump: number
+  let lootboxPointerPda: anchor.web3.PublicKey
+
   before(async () => {
     ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
       await setupNft(program, wallet.payer))
+
+    // switchboard testing setup
+    switchboard = await SwitchboardTestContext.loadDevnetQueue(
+      provider,
+      "F8ce7MsckeZAbAGmxjJNetxYXQa9mKr9nnrC3qKubyYy",
+      100_000_000
+    )
+
+    console.log(switchboard.mint.address.toString())
+    // switchboard = await SwitchboardTestContext.loadFromEnv(
+    //   program.provider as anchor.AnchorProvider,
+    //   undefined,
+    //   5_000_000 // .005 wSOL
+    // )
+    await switchboard.oracleHeartbeat()
+    const queueData = await switchboard.queue.loadData()
+    console.log(`oracleQueue: ${switchboard.queue.publicKey}`)
+    console.log(
+      `unpermissionedVrfEnabled: ${queueData.unpermissionedVrfEnabled}`
+    )
+    console.log(`# of oracles heartbeating: ${queueData.queue.length}`)
+    console.log(
+      "\x1b[32m%s\x1b[0m",
+      `\u2714 Switchboard localnet environment loaded successfully\n`
+    )
+    ;[lootboxPointerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("lootbox"), wallet.publicKey.toBuffer()],
+      lootboxProgram.programId
+    )
   })
 
   it("Stakes", async () => {
@@ -86,6 +122,102 @@ describe("anchor-nft-staking", () => {
 
     const account = await program.account.userStakeInfo.fetch(stakeStatePda)
     expect(account.stakeState.unstaked).to.not.equal(undefined)
+  })
+
+  it("init user", async () => {
+    const { unpermissionedVrfEnabled, authority, dataBuffer } =
+      await switchboard.queue.loadData()
+
+    // keypair for vrf account
+    const vrfKeypair = anchor.web3.Keypair.generate()
+
+    // find PDA used for our client state pubkey
+    ;[userState, userStateBump] = anchor.utils.publicKey.findProgramAddressSync(
+      [wallet.publicKey.toBytes()],
+      lootboxProgram.programId
+    )
+
+    // create new vrf acount
+    const vrfAccount = await sbv2.VrfAccount.create(switchboard.program, {
+      keypair: vrfKeypair,
+      authority: userState, // set vrfAccount authority as PDA
+      queue: switchboard.queue,
+      callback: {
+        programId: lootboxProgram.programId,
+        accounts: [
+          { pubkey: userState, isSigner: false, isWritable: true },
+          { pubkey: vrfKeypair.publicKey, isSigner: false, isWritable: false },
+          { pubkey: lootboxPointerPda, isSigner: false, isWritable: false },
+          { pubkey: wallet.publicKey, isSigner: false, isWritable: false },
+        ],
+        ixData: new anchor.BorshInstructionCoder(lootboxProgram.idl).encode(
+          "consumeRandomness",
+          ""
+        ),
+      },
+    })
+    console.log(`Created VRF Account: ${vrfAccount.publicKey}`)
+
+    // create permissionAccount
+    const permissionAccount = await sbv2.PermissionAccount.create(
+      switchboard.program,
+      {
+        authority,
+        granter: switchboard.queue.publicKey,
+        grantee: vrfAccount.publicKey,
+      }
+    )
+    console.log(`Created Permission Account: ${permissionAccount.publicKey}`)
+
+    // If queue requires permissions to use VRF, check the correct authority was provided
+    if (!unpermissionedVrfEnabled) {
+      if (!wallet.publicKey.equals(authority)) {
+        throw new Error(
+          `queue requires PERMIT_VRF_REQUESTS and wrong queue authority provided`
+        )
+      }
+
+      await permissionAccount.set({
+        authority: wallet.payer,
+        permission: sbv2.SwitchboardPermission.PERMIT_VRF_REQUESTS,
+        enable: true,
+      })
+      console.log(`Set VRF Permissions`)
+    }
+
+    const vrfState = await vrfAccount.loadData()
+    const queueAccount = new sbv2.OracleQueueAccount({
+      program: switchboard.program,
+      publicKey: vrfState.oracleQueue,
+    })
+
+    const queueState = await queueAccount.loadData()
+
+    const [_permissionAccount, permissionBump] =
+      sbv2.PermissionAccount.fromSeed(
+        switchboard.program,
+        queueState.authority,
+        queueAccount.publicKey,
+        vrfAccount.publicKey
+      )
+
+    const [_programStateAccount, switchboardStateBump] =
+      sbv2.ProgramStateAccount.fromSeed(switchboard.program)
+
+    const tx = await lootboxProgram.methods
+      .initUser({
+        switchboardStateBump: switchboardStateBump,
+        vrfPermissionBump: permissionBump,
+      })
+      .accounts({
+        state: userState,
+        vrf: vrfAccount.publicKey,
+        payer: wallet.pubkey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc()
+
+    console.log(`https://explorer.solana.com/tx/${tx}?cluster=devnet`)
   })
 
   it("Chooses a mint pseudorandomly", async () => {
