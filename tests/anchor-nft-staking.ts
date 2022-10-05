@@ -13,7 +13,10 @@ import {
 } from "@solana/spl-token-real"
 import { expect } from "chai"
 import { BN } from "@project-serum/anchor"
-import { SwitchboardTestContext } from "@switchboard-xyz/sbv2-utils"
+import {
+  promiseWithTimeout,
+  SwitchboardTestContext,
+} from "@switchboard-xyz/sbv2-utils"
 import * as sbv2 from "@switchboard-xyz/switchboard-v2"
 
 describe("anchor-nft-staking", () => {
@@ -93,6 +96,7 @@ describe("anchor-nft-staking", () => {
   })
 
   it("Redeems", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000))
     await program.methods
       .redeem()
       .accounts({
@@ -148,7 +152,7 @@ describe("anchor-nft-staking", () => {
         accounts: [
           { pubkey: userState, isSigner: false, isWritable: true },
           { pubkey: vrfKeypair.publicKey, isSigner: false, isWritable: false },
-          { pubkey: lootboxPointerPda, isSigner: false, isWritable: false },
+          // { pubkey: lootboxPointerPda, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: false, isWritable: false },
         ],
         ixData: new anchor.BorshInstructionCoder(lootboxProgram.idl).encode(
@@ -222,6 +226,8 @@ describe("anchor-nft-staking", () => {
   })
 
   it("Chooses a mint pseudorandomly", async () => {
+    const bldAta = await getAccount(connection, tokenAddress)
+    console.log("BLD balance:", Number(bldAta.amount) / 100)
     const state = await lootboxProgram.account.userState.fetch(userState)
 
     const vrfAccount = new sbv2.VrfAccount({
@@ -298,21 +304,15 @@ describe("anchor-nft-staking", () => {
       lootboxProgram.programId
     )
 
-    const id = await connection.onAccountChange(address, (accountInfo) => {
-      const account =
-        lootboxProgram.account.lootboxPointer.coder.accounts.decodeUnchecked(
-          "lootboxPointer",
-          accountInfo.data
-        )
-
-      console.log(account.mint.toBase58())
-      console.log(account.data)
-    })
-    connection.removeAccountChangeListener(id)
+    await awaitCallback(
+      lootboxProgram,
+      lootboxPointerPda,
+      20_000,
+      "Didn't get random mint"
+    )
 
     const pointer = await lootboxProgram.account.lootboxPointer.fetch(address)
-    expect(pointer.mint.toBase58())
-    console.log(pointer.mint.toBase58())
+    console.log(pointer)
   })
 
   it("Mints the selected gear", async () => {
@@ -331,15 +331,59 @@ describe("anchor-nft-staking", () => {
       pointer.mint,
       wallet.publicKey
     )
-    // await lootboxProgram.methods
-    //   .retrieveItemFromLootbox()
-    //   .accounts({
-    //     mint: pointer.mint,
-    //     userGearAta: gearAta,
-    //   })
-    //   .rpc()
+    let gearAccount = await getAccount(provider.connection, gearAta)
+    const previousGearCount = gearAccount.amount
+    await lootboxProgram.methods
+      .retrieveItemFromLootbox()
+      .accounts({
+        mint: pointer.mint,
+        userGearAta: gearAta,
+        state: userState,
+      })
+      .rpc()
 
-    // const gearAccount = await getAccount(provider.connection, gearAta)
-    // expect(Number(gearAccount.amount)).to.equal(1)
+    gearAccount = await getAccount(provider.connection, gearAta)
+    expect(Number(gearAccount.amount)).to.equal(Number(previousGearCount) + 1)
   })
 })
+
+async function awaitCallback(
+  program: Program<LootboxProgram>,
+  lootboxPointerAddress: anchor.web3.PublicKey,
+  timeoutInterval: number,
+  errorMsg = "Timed out waiting for VRF Client callback"
+) {
+  let ws: number | undefined = undefined
+  const result: boolean = await promiseWithTimeout(
+    timeoutInterval,
+    new Promise((resolve: (result: boolean) => void) => {
+      ws = program.provider.connection.onAccountChange(
+        lootboxPointerAddress,
+        async (
+          accountInfo: anchor.web3.AccountInfo<Buffer>,
+          context: anchor.web3.Context
+        ) => {
+          const lootboxPointer = await program.account.lootboxPointer.fetch(
+            lootboxPointerAddress
+          )
+          if (lootboxPointer.mintIsReady) {
+            resolve(true)
+          }
+        }
+      )
+    }).finally(async () => {
+      if (ws) {
+        await program.provider.connection.removeAccountChangeListener(ws)
+      }
+      ws = undefined
+    }),
+    new Error(errorMsg)
+  ).finally(async () => {
+    if (ws) {
+      await program.provider.connection.removeAccountChangeListener(ws)
+    }
+    ws = undefined
+  })
+
+  return result
+}

@@ -10,4 +10,6 @@ pub enum LootboxError {
   InvalidVrfAuthorityError,
   #[msg("Invalid VRF account provided.")]
   InvalidVrfAccount,
+  #[msg("Random mint has not been assigned yet")]
+  MintNotReady,
 }

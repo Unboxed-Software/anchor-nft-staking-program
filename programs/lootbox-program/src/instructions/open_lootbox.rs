@@ -5,14 +5,14 @@ use anchor_lang::solana_program;
 pub struct OpenLootbox<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(
-        init_if_needed,
-        payer = user,
-        space = std::mem::size_of::<LootboxPointer>() + 8,
-        seeds=["lootbox".as_bytes(), user.key().as_ref()],
-        bump
-    )]
-    pub lootbox_pointer: Box<Account<'info, LootboxPointer>>,
+    // #[account(
+    //     init_if_needed,
+    //     payer = user,
+    //     space = std::mem::size_of::<LootboxPointer>() + 8,
+    //     seeds=["lootbox".as_bytes(), user.key().as_ref()],
+    //     bump
+    // )]
+    // pub lootbox_pointer: Box<Account<'info, LootboxPointer>>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     // Swap the next two lines out between prod/testing
@@ -97,7 +97,7 @@ pub struct StakingProgram;
 
 impl anchor_lang::Id for StakingProgram {
     fn id() -> Pubkey {
-        "3CUC1Enh3GF7X1vE7ixm1Aq7cv1fTqY7UZvnDoz7X9sZ"
+        "2uE2DSDFoz9qendAdDpFL4wQ79cX2M4m3DFGX41KQ5YX"
             .parse::<Pubkey>()
             .unwrap()
     }
@@ -105,22 +105,22 @@ impl anchor_lang::Id for StakingProgram {
 
 impl OpenLootbox<'_> {
     pub fn process_instruction(ctx: &mut Context<Self>, box_number: u64) -> Result<()> {
-        // let mut loot_box = 10;
-        // loop {
-        //     if loot_box > box_number {
-        //         return err!(LootboxError::InvalidLootbox);
-        //     }
+        let mut loot_box = 10;
+        loop {
+            if loot_box > box_number {
+                return err!(LootboxError::InvalidLootbox);
+            }
 
-        //     if loot_box == box_number {
-        //         require!(
-        //             ctx.accounts.stake_state.total_earned >= box_number,
-        //             LootboxError::InvalidLootbox
-        //         );
-        //         break;
-        //     } else {
-        //         loot_box = loot_box * 2;
-        //     }
-        // }
+            if loot_box == box_number {
+                require!(
+                    ctx.accounts.stake_state.total_earned >= box_number,
+                    LootboxError::InvalidLootbox
+                );
+                break;
+            } else {
+                loot_box = loot_box * 2;
+            }
+        }
 
         // require!(
         //     !ctx.accounts.lootbox_pointer.is_initialized || ctx.accounts.lootbox_pointer.claimed,
@@ -179,8 +179,9 @@ impl OpenLootbox<'_> {
 
         msg!("randomness requested successfully");
 
-        ctx.accounts.lootbox_pointer.claimed = false;
-        ctx.accounts.lootbox_pointer.is_initialized = true;
+        // ctx.accounts.lootbox_pointer.claimed = false;
+        // ctx.accounts.lootbox_pointer.mint_is_ready = false;
+        // ctx.accounts.lootbox_pointer.is_initialized = true;
 
         Ok(())
     }

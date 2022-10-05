@@ -13,12 +13,12 @@ pub struct ConsumeRandomness<'info> {
     )]
     pub state: AccountLoader<'info, UserState>,
     pub vrf: AccountLoader<'info, VrfAccountData>,
-    #[account(
-    mut,
-    seeds=["lootbox".as_bytes(), state.load()?.user.key().as_ref()],
-    bump
-  )]
-    pub lootbox_pointer: Account<'info, LootboxPointer>,
+    // #[account(
+    //     mut,
+    //     seeds=["lootbox".as_bytes(), payer.key().as_ref()],
+    //     bump
+    //   )]
+    // pub lootbox_pointer: Account<'info, LootboxPointer>,
     /// CHECK: not important...
     pub payer: AccountInfo<'info>,
 }
@@ -40,19 +40,19 @@ impl ConsumeRandomness<'_> {
         }
 
         let available_gear = vec![
-            "7J6xbRKnRCkcwfkqj8e2e9ovGxW22oJniUHCygKRvzvr"
+            "EEmw12BYv1nrSGQbQucpV82uDiEWPX26eipDPL8W3rdY"
                 .parse::<Pubkey>()
                 .unwrap(),
-            "Awd3AYRjbzFhwWc5PQjeGRLUyxvq7RpiLgvLgw1YU8bm"
+            "BUN755b7SXPy8i8xFgzEfo7mY59VzsCPqg15ojn6bLTy"
                 .parse::<Pubkey>()
                 .unwrap(),
-            "Chru2YcHQ5wo9fZz8PVnbvKWmQq3yZcJgdJ8fse5FjiC"
+            "3e2JoTNLwV6vBHzLrsR2H1LSGfSdguotXBabxjvvXuVB"
                 .parse::<Pubkey>()
                 .unwrap(),
-            "FFTeyZ277nBa7PE8Vyot7y3S9X5kyC63WDgxHB3EE4fG"
+            "GnjZuiLKKkpnytCNUsWyugZixZdhNQ9eyUw3VzUocFJ1"
                 .parse::<Pubkey>()
                 .unwrap(),
-            "Bfh4o6CsbF2BKfCT2wCiqCywSEbCGrZ6Y2kJMcFM92s6"
+            "AuBz3izVCzPzxJyPNFAKsYZE2gNDkePX7c3zvtMVkr59"
                 .parse::<Pubkey>()
                 .unwrap(),
         ];
@@ -67,8 +67,13 @@ impl ConsumeRandomness<'_> {
 
         // Add in randomness later for selecting mint
         let mint = available_gear[result];
-        ctx.accounts.lootbox_pointer.mint = mint;
-        ctx.accounts.lootbox_pointer.claimed = false;
+        msg!("Next mint is {:?}", mint);
+        // ctx.accounts.lootbox_pointer.mint = mint;
+        // ctx.accounts.lootbox_pointer.mint_is_ready = true;
+        // ctx.accounts.lootbox_pointer.claimed = false;
+        let mut state = ctx.accounts.state.load_mut()?;
+        state.mint = mint;
+        state.redeemable = true;
 
         Ok(())
     }

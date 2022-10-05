@@ -1,11 +1,12 @@
 use crate::*;
 
-#[account]
-pub struct LootboxPointer {
-  pub mint: Pubkey,
-  pub claimed: bool,
-  pub is_initialized: bool,
-}
+// #[account]
+// pub struct LootboxPointer {
+//   pub mint: Pubkey,
+//   pub mint_is_ready: bool,
+//   pub claimed: bool,
+//   pub is_initialized: bool,
+// }
 
 #[repr(packed)]
 #[account(zero_copy)]

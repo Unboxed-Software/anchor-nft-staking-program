@@ -1,20 +1,29 @@
+use crate::state::*;
 use crate::*;
 
 #[derive(Accounts)]
 pub struct RetrieveItem<'info> {
   #[account(mut)]
   pub user: Signer<'info>,
-  #[account(
-        seeds=["lootbox".as_bytes(), user.key().as_ref()],
-        bump,
-        constraint=lootbox_pointer.is_initialized
-    )]
-  pub lootbox_pointer: Account<'info, LootboxPointer>,
+  // #[account(
+  //       seeds=["lootbox".as_bytes(), user.key().as_ref()],
+  //       bump,
+  //       constraint=lootbox_pointer.is_initialized
+  //   )]
+  // pub lootbox_pointer: Account<'info, LootboxPointer>,
   #[account(
         mut,
-        constraint=lootbox_pointer.mint==mint.key()
+        constraint=state.load()?.mint==mint.key()
     )]
   pub mint: Account<'info, Mint>,
+  #[account(
+        mut,
+        seeds = [
+            user.key().as_ref(),
+        ],
+        bump = state.load()?.bump
+    )]
+  pub state: AccountLoader<'info, UserState>,
   #[account(
         init_if_needed,
         payer=user,
@@ -36,10 +45,17 @@ pub struct RetrieveItem<'info> {
 
 impl RetrieveItem<'_> {
   pub fn process_instruction(ctx: &mut Context<Self>) -> Result<()> {
-    require!(
-      !ctx.accounts.lootbox_pointer.claimed,
-      LootboxError::AlreadyClaimed
-    );
+    let state = &mut ctx.accounts.state.load_mut()?;
+
+    require!(state.redeemable, LootboxError::MintNotReady);
+    // require!(
+    //   ctx.accounts.lootbox_pointer.mint_is_ready,
+    //   LootboxError::MintNotReady
+    // );
+    // require!(
+    //   !ctx.accounts.lootbox_pointer.claimed,
+    //   LootboxError::AlreadyClaimed
+    // );
     token::mint_to(
       CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
@@ -56,7 +72,9 @@ impl RetrieveItem<'_> {
       1,
     )?;
 
-    ctx.accounts.lootbox_pointer.claimed = true;
+    state.redeemable = false;
+    // ctx.accounts.lootbox_pointer.claimed = true;
+    // ctx.accounts.lootbox_pointer.mint_is_ready = false;
 
     Ok(())
   }
