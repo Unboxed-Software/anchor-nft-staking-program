@@ -20,6 +20,7 @@ describe("anchor-nft-staking", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
+  const connection = anchor.getProvider().connection
 
   const program = anchor.workspace.AnchorNftStaking as Program<AnchorNftStaking>
 
@@ -221,6 +222,27 @@ describe("anchor-nft-staking", () => {
   })
 
   it("Chooses a mint pseudorandomly", async () => {
+    const state = await lootboxProgram.account.userState.fetch(userState)
+
+    const vrfAccount = new sbv2.VrfAccount({
+      program: switchboard.program,
+      publicKey: state.vrf,
+    })
+    const vrfState = await vrfAccount.loadData()
+    const queueAccount = new sbv2.OracleQueueAccount({
+      program: switchboard.program,
+      publicKey: vrfState.oracleQueue,
+    })
+    const queueState = await queueAccount.loadData()
+    const [permissionAccount, permissionBump] = sbv2.PermissionAccount.fromSeed(
+      switchboard.program,
+      queueState.authority,
+      queueAccount.publicKey,
+      vrfAccount.publicKey
+    )
+    const [programStateAccount, switchboardStateBump] =
+      sbv2.ProgramStateAccount.fromSeed(switchboard.program)
+
     const mint = await createMint(
       provider.connection,
       wallet.payer,
@@ -253,9 +275,21 @@ describe("anchor-nft-staking", () => {
     await lootboxProgram.methods
       .openLootbox(new BN(10))
       .accounts({
+        user: wallet.publicKey,
         stakeMint: mint,
         stakeMintAta: ata.address,
         stakeState: stakeAccount,
+        state: userState,
+        vrf: vrfAccount.publicKey,
+        oracleQueue: queueAccount.publicKey,
+        queueAuthority: queueState.authority,
+        dataBuffer: queueState.dataBuffer,
+        permission: permissionAccount.publicKey,
+        escrow: vrfState.escrow,
+        programState: programStateAccount.publicKey,
+        switchboardProgram: switchboard.program.programId,
+        payerWallet: switchboard.payerTokenWallet,
+        recentBlockhashes: anchor.web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
       })
       .rpc()
 
@@ -263,8 +297,22 @@ describe("anchor-nft-staking", () => {
       [Buffer.from("lootbox"), wallet.publicKey.toBuffer()],
       lootboxProgram.programId
     )
+
+    const id = await connection.onAccountChange(address, (accountInfo) => {
+      const account =
+        lootboxProgram.account.lootboxPointer.coder.accounts.decodeUnchecked(
+          "lootboxPointer",
+          accountInfo.data
+        )
+
+      console.log(account.mint.toBase58())
+      console.log(account.data)
+    })
+    connection.removeAccountChangeListener(id)
+
     const pointer = await lootboxProgram.account.lootboxPointer.fetch(address)
     expect(pointer.mint.toBase58())
+    console.log(pointer.mint.toBase58())
   })
 
   it("Mints the selected gear", async () => {
@@ -277,19 +325,21 @@ describe("anchor-nft-staking", () => {
       pointerAddress
     )
 
+    console.log(pointer.mint.toBase58())
+
     const gearAta = await getAssociatedTokenAddress(
       pointer.mint,
       wallet.publicKey
     )
-    await lootboxProgram.methods
-      .retrieveItemFromLootbox()
-      .accounts({
-        mint: pointer.mint,
-        userGearAta: gearAta,
-      })
-      .rpc()
+    // await lootboxProgram.methods
+    //   .retrieveItemFromLootbox()
+    //   .accounts({
+    //     mint: pointer.mint,
+    //     userGearAta: gearAta,
+    //   })
+    //   .rpc()
 
-    const gearAccount = await getAccount(provider.connection, gearAta)
-    expect(Number(gearAccount.amount)).to.equal(1)
+    // const gearAccount = await getAccount(provider.connection, gearAta)
+    // expect(Number(gearAccount.amount)).to.equal(1)
   })
 })

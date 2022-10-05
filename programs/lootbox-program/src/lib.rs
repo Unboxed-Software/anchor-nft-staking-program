@@ -15,7 +15,7 @@ use error::*;
 use instructions::*;
 use state::*;
 
-declare_id!("6GE3ki2igpw2ZTAt6BV4pTjF5qvtCbFVQP7SGPJaEuoa");
+declare_id!("pN76qKPUgBMSRgkcF5mfHJ57f9buahnFQVLEc96nXKs");
 
 #[program]
 pub mod lootbox_program {
