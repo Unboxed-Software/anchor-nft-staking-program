@@ -3,8 +3,6 @@ import * as anchor from "@project-serum/anchor"
 import * as sbv2 from "@switchboard-xyz/switchboard-v2"
 
 export const setupSwitchboard = async (provider, lootboxProgram, payer) => {
-  // switchboard testing setup
-
   const switchboard = await SwitchboardTestContext.loadDevnetQueue(
     provider,
     "F8ce7MsckeZAbAGmxjJNetxYXQa9mKr9nnrC3qKubyYy",

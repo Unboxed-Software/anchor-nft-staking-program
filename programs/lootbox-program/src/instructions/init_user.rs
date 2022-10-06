@@ -6,14 +6,14 @@ pub struct InitUser<'info> {
   #[account(
         init,
         // TESTING - Comment out these seeds for testing
-        // seeds = [
-        //     user.key().as_ref(),
-        // ],
-        // TESTING - Uncomment these seeds for testing
         seeds = [
-            vrf.key().as_ref(),
-            payer.key().as_ref()
+            payer.key().as_ref(),
         ],
+        // TESTING - Uncomment these seeds for testing
+        // seeds = [
+        //     vrf.key().as_ref(),
+        //     payer.key().as_ref()
+        // ],
         payer = payer,
         space = 8 + std::mem::size_of::<UserState>(),
         bump,

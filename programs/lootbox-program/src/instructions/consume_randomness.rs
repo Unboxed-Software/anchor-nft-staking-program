@@ -6,14 +6,14 @@ pub struct ConsumeRandomness<'info> {
     #[account(
         mut,
         // TESTING - Comment out these seeds for testing
-        // seeds = [
-        //     user.key().as_ref(),
-        // ],
-        // TESTING - Uncomment these seeds for testing
         seeds = [
-            vrf.key().as_ref(),
-            payer.key().as_ref()
+            payer.key().as_ref(),
         ],
+        // TESTING - Uncomment these seeds for testing
+        // seeds = [
+        //     vrf.key().as_ref(),
+        //     payer.key().as_ref()
+        // ],
         bump = state.load()?.bump,
         has_one = vrf @ LootboxError::InvalidVrfAccount
     )]
@@ -65,10 +65,10 @@ impl ConsumeRandomness<'_> {
     }
 
     const AVAILABLE_GEAR: [&'static str; 5] = [
-        "Bn3W154oMsEck9yGfz9dDHHGPhxnyBtHywpvWp8Y4vsP",
-        "3iCpP3xztw8TFfWeHSCAZ3wHc7MaT3fuU8QUxHnCowgL",
-        "rrRyYpnyQwfUkvHCTzVpBoF5WoQNwBATJrmnCiB2g7C",
-        "GMvid4H2AeKPbaKiKPNxe17iAgipB7spTGBYdBRrp8Qu",
-        "4eBFqb3dpB4sAi7QHwRz3Rgo6S93QnCFUQ4UBY63i7Lj",
+        "87QkviUPcxNqjdo1N6C4FrQe3ZiYdAyxGoT44ioDUG8m",
+        "EypLPq3xBRREfpsdbyXfFjobVAnHsNerP892NMHWzrKj",
+        "Ds1txTXZadjsjKtt2ybH56GQ2do4nbGc8nrSH3Ln8G9p",
+        "EHPo4mSNCfYzX3Dtr832boZAiR8vy39eTsUfKprXbFus",
+        "HzUvbXymUCBtubKQD9yiwWdivAbTiyKhpzVBcgD9DhrV",
     ];
 }

@@ -16,12 +16,12 @@ pub struct OpenLootbox<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     // TESTING - Uncomment the next line during testing
-    #[account(mut)]
+    // #[account(mut)]
     // TESTING - Comment out the next three lines during testing
-    // #[account(
-    //       mut,
-    //       address="6YR1nuLqkk8VC1v42xJaPKvE9X9pnuqVAvthFUSDsMUL".parse::<Pubkey>().unwrap()
-    //   )]
+    #[account(
+          mut,
+          address="D7F9JnGcjxQwz9zEQmasksX1VrwFcfRKu8Vdqrk2enHR".parse::<Pubkey>().unwrap()
+      )]
     pub stake_mint: Account<'info, Mint>,
     #[account(
         mut,
@@ -37,14 +37,14 @@ pub struct OpenLootbox<'info> {
     #[account(
         mut,
         // TESTING - Comment out these seeds for testing
-        // seeds = [
-        //     user.key().as_ref(),
-        // ],
-        // TESTING - Uncomment these seeds for testing
         seeds = [
-            vrf.key().as_ref(),
-            user.key().as_ref()
+            user.key().as_ref(),
         ],
+        // TESTING - Uncomment these seeds for testing
+        // seeds = [
+        //     vrf.key().as_ref(),
+        //     user.key().as_ref()
+        // ],
         bump = state.load()?.bump,
         has_one = vrf @ LootboxError::InvalidVrfAccount
     )]
@@ -169,11 +169,11 @@ impl OpenLootbox<'_> {
         };
 
         let payer = ctx.accounts.user.key();
-        let vrf = ctx.accounts.vrf.key();
         // TESTING - uncomment the following during tests
-        let state_seeds: &[&[&[u8]]] = &[&[vrf.as_ref(), payer.as_ref(), &[bump]]];
+        // let vrf = ctx.accounts.vrf.key();
+        // let state_seeds: &[&[&[u8]]] = &[&[vrf.as_ref(), payer.as_ref(), &[bump]]];
         // TESTING - comment out the next line during tests
-        // let state_seeds: &[&[&[u8]]] = &[&[payer.as_ref(), &[bump]]];
+        let state_seeds: &[&[&[u8]]] = &[&[payer.as_ref(), &[bump]]];
 
         msg!("requesting randomness");
         vrf_request_randomness.invoke_signed(

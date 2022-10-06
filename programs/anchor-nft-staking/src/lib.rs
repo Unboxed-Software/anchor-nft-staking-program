@@ -87,9 +87,9 @@ pub mod anchor_nft_staking {
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
         // TESTING - uncomment the next line for testing
-        let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        // let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         // TESTING - comment out the next line during testing
-        // let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
         msg!("Minting staking rewards");
@@ -172,9 +172,9 @@ pub mod anchor_nft_staking {
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
         // TESTING - uncomment the next line for testing
-        let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        // let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         // TESTING - comment out the next line during testing
-        // let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
         msg!("Minting staking rewards");

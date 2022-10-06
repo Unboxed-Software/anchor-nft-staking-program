@@ -182,11 +182,6 @@ describe("anchor-nft-staking", () => {
       })
       .rpc()
 
-    const [address] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("lootbox"), wallet.publicKey.toBuffer()],
-      lootboxProgram.programId
-    )
-
     await awaitCallback(
       lootboxProgram,
       lootboxPointerPda,
