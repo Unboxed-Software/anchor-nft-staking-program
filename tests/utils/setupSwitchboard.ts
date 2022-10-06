@@ -29,11 +29,10 @@ export const setupSwitchboard = async (provider, lootboxProgram, payer) => {
   const vrfKeypair = anchor.web3.Keypair.generate()
 
   // find PDA used for our client state pubkey
-  const [userState, userStateBump] =
-    anchor.utils.publicKey.findProgramAddressSync(
-      [vrfKeypair.publicKey.toBytes(), payer.publicKey.toBytes()],
-      lootboxProgram.programId
-    )
+  const [userState] = anchor.utils.publicKey.findProgramAddressSync(
+    [vrfKeypair.publicKey.toBytes(), payer.publicKey.toBytes()],
+    lootboxProgram.programId
+  )
 
   // lootboxPointerPda for callback
   const [lootboxPointerPda] = anchor.web3.PublicKey.findProgramAddressSync(

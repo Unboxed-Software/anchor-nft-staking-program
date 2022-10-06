@@ -24,7 +24,6 @@ describe("anchor-nft-staking", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
-  const connection = anchor.getProvider().connection
 
   const program = anchor.workspace.AnchorNftStaking as Program<AnchorNftStaking>
 
@@ -33,16 +32,13 @@ describe("anchor-nft-staking", () => {
   const lootboxProgram = anchor.workspace
     .LootboxProgram as Program<LootboxProgram>
 
-  let delegatedAuthPda: anchor.web3.PublicKey
   let stakeStatePda: anchor.web3.PublicKey
   let nft: any
-  let mintAuth: anchor.web3.PublicKey
   let mint: anchor.web3.PublicKey
   let tokenAddress: anchor.web3.PublicKey
 
   let switchboard: SwitchboardTestContext
   let userState: anchor.web3.PublicKey
-  let userStateBump: number
   let lootboxPointerPda: anchor.web3.PublicKey
   let permissionBump: number
   let switchboardStateBump: number
@@ -51,8 +47,10 @@ describe("anchor-nft-staking", () => {
   let permissionAccount: sbv2.PermissionAccount
 
   before(async () => {
-    ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
-      await setupNft(program, wallet.payer))
+    ;({ nft, stakeStatePda, mint, tokenAddress } = await setupNft(
+      program,
+      wallet.payer
+    ))
     ;({
       switchboard,
       lootboxPointerPda,
