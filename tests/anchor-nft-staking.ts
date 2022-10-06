@@ -18,6 +18,7 @@ import {
   SwitchboardTestContext,
 } from "@switchboard-xyz/sbv2-utils"
 import * as sbv2 from "@switchboard-xyz/switchboard-v2"
+import { setupSwitchboard } from "./utils/setupSwitchboard"
 
 describe("anchor-nft-staking", () => {
   // Configure the client to use the local cluster.
@@ -47,35 +48,11 @@ describe("anchor-nft-staking", () => {
   before(async () => {
     ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
       await setupNft(program, wallet.payer))
-
-    // switchboard testing setup
-    switchboard = await SwitchboardTestContext.loadDevnetQueue(
+    ;({ lootboxPointerPda, switchboard } = await setupSwitchboard(
       provider,
-      "F8ce7MsckeZAbAGmxjJNetxYXQa9mKr9nnrC3qKubyYy",
-      100_000_000
-    )
-
-    console.log(switchboard.mint.address.toString())
-    // switchboard = await SwitchboardTestContext.loadFromEnv(
-    //   program.provider as anchor.AnchorProvider,
-    //   undefined,
-    //   5_000_000 // .005 wSOL
-    // )
-    await switchboard.oracleHeartbeat()
-    const queueData = await switchboard.queue.loadData()
-    console.log(`oracleQueue: ${switchboard.queue.publicKey}`)
-    console.log(
-      `unpermissionedVrfEnabled: ${queueData.unpermissionedVrfEnabled}`
-    )
-    console.log(`# of oracles heartbeating: ${queueData.queue.length}`)
-    console.log(
-      "\x1b[32m%s\x1b[0m",
-      `\u2714 Switchboard localnet environment loaded successfully\n`
-    )
-    ;[lootboxPointerPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("lootbox"), wallet.publicKey.toBuffer()],
-      lootboxProgram.programId
-    )
+      lootboxProgram,
+      wallet.payer
+    ))
   })
 
   it("Stakes", async () => {
@@ -138,7 +115,7 @@ describe("anchor-nft-staking", () => {
 
     // find PDA used for our client state pubkey
     ;[userState, userStateBump] = anchor.utils.publicKey.findProgramAddressSync(
-      [wallet.publicKey.toBytes()],
+      [vrfKeypair.publicKey.toBytes(), wallet.publicKey.toBytes()],
       lootboxProgram.programId
     )
 
@@ -152,7 +129,7 @@ describe("anchor-nft-staking", () => {
         accounts: [
           { pubkey: userState, isSigner: false, isWritable: true },
           { pubkey: vrfKeypair.publicKey, isSigner: false, isWritable: false },
-          // { pubkey: lootboxPointerPda, isSigner: false, isWritable: true },
+          { pubkey: lootboxPointerPda, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: false, isWritable: false },
         ],
         ixData: new anchor.BorshInstructionCoder(lootboxProgram.idl).encode(
@@ -161,7 +138,6 @@ describe("anchor-nft-staking", () => {
         ),
       },
     })
-    console.log(`Created VRF Account: ${vrfAccount.publicKey}`)
 
     // create permissionAccount
     const permissionAccount = await sbv2.PermissionAccount.create(
@@ -172,7 +148,6 @@ describe("anchor-nft-staking", () => {
         grantee: vrfAccount.publicKey,
       }
     )
-    console.log(`Created Permission Account: ${permissionAccount.publicKey}`)
 
     // If queue requires permissions to use VRF, check the correct authority was provided
     if (!unpermissionedVrfEnabled) {
@@ -187,7 +162,6 @@ describe("anchor-nft-staking", () => {
         permission: sbv2.SwitchboardPermission.PERMIT_VRF_REQUESTS,
         enable: true,
       })
-      console.log(`Set VRF Permissions`)
     }
 
     const vrfState = await vrfAccount.loadData()
@@ -221,13 +195,10 @@ describe("anchor-nft-staking", () => {
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc()
-
-    console.log(`https://explorer.solana.com/tx/${tx}?cluster=devnet`)
   })
 
   it("Chooses a mint pseudorandomly", async () => {
     const bldAta = await getAccount(connection, tokenAddress)
-    console.log("BLD balance:", Number(bldAta.amount) / 100)
     const state = await lootboxProgram.account.userState.fetch(userState)
 
     const vrfAccount = new sbv2.VrfAccount({
@@ -310,9 +281,6 @@ describe("anchor-nft-staking", () => {
       20_000,
       "Didn't get random mint"
     )
-
-    const pointer = await lootboxProgram.account.lootboxPointer.fetch(address)
-    console.log(pointer)
   })
 
   it("Mints the selected gear", async () => {
@@ -325,25 +293,26 @@ describe("anchor-nft-staking", () => {
       pointerAddress
     )
 
-    console.log(pointer.mint.toBase58())
-
+    let previousGearCount = 0
     const gearAta = await getAssociatedTokenAddress(
       pointer.mint,
       wallet.publicKey
     )
-    let gearAccount = await getAccount(provider.connection, gearAta)
-    const previousGearCount = gearAccount.amount
+    try {
+      let gearAccount = await getAccount(provider.connection, gearAta)
+      previousGearCount = Number(gearAccount.amount)
+    } catch (error) {}
+
     await lootboxProgram.methods
       .retrieveItemFromLootbox()
       .accounts({
         mint: pointer.mint,
         userGearAta: gearAta,
-        state: userState,
       })
       .rpc()
 
-    gearAccount = await getAccount(provider.connection, gearAta)
-    expect(Number(gearAccount.amount)).to.equal(Number(previousGearCount) + 1)
+    const gearAccount = await getAccount(provider.connection, gearAta)
+    expect(Number(gearAccount.amount)).to.equal(previousGearCount + 1)
   })
 })
 
@@ -366,7 +335,8 @@ async function awaitCallback(
           const lootboxPointer = await program.account.lootboxPointer.fetch(
             lootboxPointerAddress
           )
-          if (lootboxPointer.mintIsReady) {
+
+          if (lootboxPointer.redeemable) {
             resolve(true)
           }
         }

@@ -5,21 +5,27 @@ use crate::*;
 pub struct ConsumeRandomness<'info> {
     #[account(
         mut,
+        // TESTING - Comment out these seeds for testing
+        // seeds = [
+        //     user.key().as_ref(),
+        // ],
+        // TESTING - Uncomment these seeds for testing
         seeds = [
-            payer.key().as_ref(),
+            vrf.key().as_ref(),
+            payer.key().as_ref()
         ],
         bump = state.load()?.bump,
         has_one = vrf @ LootboxError::InvalidVrfAccount
     )]
     pub state: AccountLoader<'info, UserState>,
     pub vrf: AccountLoader<'info, VrfAccountData>,
-    // #[account(
-    //     mut,
-    //     seeds=["lootbox".as_bytes(), payer.key().as_ref()],
-    //     bump
-    //   )]
-    // pub lootbox_pointer: Account<'info, LootboxPointer>,
-    /// CHECK: not important...
+    #[account(
+        mut,
+        seeds=["lootbox".as_bytes(), payer.key().as_ref()],
+        bump
+      )]
+    pub lootbox_pointer: Account<'info, LootboxPointer>,
+    /// CHECK: ...
     pub payer: AccountInfo<'info>,
 }
 
@@ -39,42 +45,30 @@ impl ConsumeRandomness<'_> {
             return Ok(());
         }
 
-        let available_gear = vec![
-            "EEmw12BYv1nrSGQbQucpV82uDiEWPX26eipDPL8W3rdY"
-                .parse::<Pubkey>()
-                .unwrap(),
-            "BUN755b7SXPy8i8xFgzEfo7mY59VzsCPqg15ojn6bLTy"
-                .parse::<Pubkey>()
-                .unwrap(),
-            "3e2JoTNLwV6vBHzLrsR2H1LSGfSdguotXBabxjvvXuVB"
-                .parse::<Pubkey>()
-                .unwrap(),
-            "GnjZuiLKKkpnytCNUsWyugZixZdhNQ9eyUw3VzUocFJ1"
-                .parse::<Pubkey>()
-                .unwrap(),
-            "AuBz3izVCzPzxJyPNFAKsYZE2gNDkePX7c3zvtMVkr59"
-                .parse::<Pubkey>()
-                .unwrap(),
-        ];
+        let available_gear: Vec<Pubkey> = Self::AVAILABLE_GEAR
+            .into_iter()
+            .map(|key| key.parse::<Pubkey>().unwrap())
+            .collect();
 
         // maximum value to convert randomness buffer
         let max_result = available_gear.len();
-        msg!("Result buffer is {:?}", result_buffer);
         let value: &[u8] = bytemuck::cast_slice(&result_buffer[..]);
-        msg!("u128 buffer {:?}", value);
-        let result = (value[0] as usize) % max_result;
-        msg!("Current VRF Value [1 - {}) = {}!", max_result, result);
+        let i = (value[0] as usize) % max_result;
+        msg!("The chosen mint index is {} out of {}", i, max_result);
 
-        // Add in randomness later for selecting mint
-        let mint = available_gear[result];
+        let mint = available_gear[i];
         msg!("Next mint is {:?}", mint);
-        // ctx.accounts.lootbox_pointer.mint = mint;
-        // ctx.accounts.lootbox_pointer.mint_is_ready = true;
-        // ctx.accounts.lootbox_pointer.claimed = false;
-        let mut state = ctx.accounts.state.load_mut()?;
-        state.mint = mint;
-        state.redeemable = true;
+        ctx.accounts.lootbox_pointer.mint = mint;
+        ctx.accounts.lootbox_pointer.redeemable = true;
 
         Ok(())
     }
+
+    const AVAILABLE_GEAR: [&'static str; 5] = [
+        "Bn3W154oMsEck9yGfz9dDHHGPhxnyBtHywpvWp8Y4vsP",
+        "3iCpP3xztw8TFfWeHSCAZ3wHc7MaT3fuU8QUxHnCowgL",
+        "rrRyYpnyQwfUkvHCTzVpBoF5WoQNwBATJrmnCiB2g7C",
+        "GMvid4H2AeKPbaKiKPNxe17iAgipB7spTGBYdBRrp8Qu",
+        "4eBFqb3dpB4sAi7QHwRz3Rgo6S93QnCFUQ4UBY63i7Lj",
+    ];
 }

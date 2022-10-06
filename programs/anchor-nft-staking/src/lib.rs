@@ -10,7 +10,7 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-declare_id!("AeGHYBd6avdc7kkW2t42CVLhNUaF31aJwAuS6gcZZ8v5");
+declare_id!("7Y6X75JaPUSiaqRbJhjA7tLGR1p2a3YZQeGwG6A5hTjt");
 
 #[program]
 pub mod anchor_nft_staking {
@@ -86,8 +86,9 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
-        // Swap the next two lines out between prod/testing
+        // TESTING - uncomment the next line for testing
         let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        // TESTING - comment out the next line during testing
         // let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
@@ -170,8 +171,9 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.last_stake_redeem;
         msg!("Seconds since last redeem: {}", unix_time);
-        // Swap the next two lines out between prod/testing
+        // TESTING - uncomment the next line for testing
         let redeem_amount = (10000000000 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        // TESTING - comment out the next line during testing
         // let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
 

@@ -5,18 +5,19 @@ use anchor_lang::solana_program;
 pub struct OpenLootbox<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    // #[account(
-    //     init_if_needed,
-    //     payer = user,
-    //     space = std::mem::size_of::<LootboxPointer>() + 8,
-    //     seeds=["lootbox".as_bytes(), user.key().as_ref()],
-    //     bump
-    // )]
-    // pub lootbox_pointer: Box<Account<'info, LootboxPointer>>,
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = std::mem::size_of::<LootboxPointer>() + 8,
+        seeds=["lootbox".as_bytes(), user.key().as_ref()],
+        bump
+    )]
+    pub lootbox_pointer: Box<Account<'info, LootboxPointer>>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    // Swap the next two lines out between prod/testing
+    // TESTING - Uncomment the next line during testing
     #[account(mut)]
+    // TESTING - Comment out the next three lines during testing
     // #[account(
     //       mut,
     //       address="6YR1nuLqkk8VC1v42xJaPKvE9X9pnuqVAvthFUSDsMUL".parse::<Pubkey>().unwrap()
@@ -33,11 +34,16 @@ pub struct OpenLootbox<'info> {
         constraint=stake_state.user_pubkey==user.key(),
     )]
     pub stake_state: Box<Account<'info, UserStakeInfo>>,
-
     #[account(
         mut,
+        // TESTING - Comment out these seeds for testing
+        // seeds = [
+        //     user.key().as_ref(),
+        // ],
+        // TESTING - Uncomment these seeds for testing
         seeds = [
-            user.key().as_ref(),
+            vrf.key().as_ref(),
+            user.key().as_ref()
         ],
         bump = state.load()?.bump,
         has_one = vrf @ LootboxError::InvalidVrfAccount
@@ -123,8 +129,8 @@ impl OpenLootbox<'_> {
         }
 
         // require!(
-        //     !ctx.accounts.lootbox_pointer.is_initialized || ctx.accounts.lootbox_pointer.claimed,
-        //     LootboxError::InvalidLootbox
+        //     !ctx.accounts.lootbox_pointer.randomness_requested,
+        //     LootboxError::RandomnessAlreadyRequested
         // );
 
         token::burn(
@@ -163,7 +169,11 @@ impl OpenLootbox<'_> {
         };
 
         let payer = ctx.accounts.user.key();
-        let state_seeds: &[&[&[u8]]] = &[&[payer.as_ref(), &[bump]]];
+        let vrf = ctx.accounts.vrf.key();
+        // TESTING - uncomment the following during tests
+        let state_seeds: &[&[&[u8]]] = &[&[vrf.as_ref(), payer.as_ref(), &[bump]]];
+        // TESTING - comment out the next line during tests
+        // let state_seeds: &[&[&[u8]]] = &[&[payer.as_ref(), &[bump]]];
 
         msg!("requesting randomness");
         vrf_request_randomness.invoke_signed(
@@ -173,15 +183,10 @@ impl OpenLootbox<'_> {
             state_seeds,
         )?;
 
-        let mut state = ctx.accounts.state.load_mut()?;
-        state.result = 0;
-        state.redeemable = true;
-
         msg!("randomness requested successfully");
 
-        // ctx.accounts.lootbox_pointer.claimed = false;
-        // ctx.accounts.lootbox_pointer.mint_is_ready = false;
-        // ctx.accounts.lootbox_pointer.is_initialized = true;
+        ctx.accounts.lootbox_pointer.randomness_requested = true;
+        ctx.accounts.lootbox_pointer.is_initialized = true;
 
         Ok(())
     }

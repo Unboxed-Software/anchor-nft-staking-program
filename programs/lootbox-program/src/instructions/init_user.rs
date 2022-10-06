@@ -5,8 +5,14 @@ use crate::*;
 pub struct InitUser<'info> {
   #[account(
         init,
+        // TESTING - Comment out these seeds for testing
+        // seeds = [
+        //     user.key().as_ref(),
+        // ],
+        // TESTING - Uncomment these seeds for testing
         seeds = [
-            payer.key().as_ref(),
+            vrf.key().as_ref(),
+            payer.key().as_ref()
         ],
         payer = payer,
         space = 8 + std::mem::size_of::<UserState>(),
@@ -30,8 +36,6 @@ pub struct InitUserParams {
 
 impl InitUser<'_> {
   pub fn process_instruction(ctx: &Context<Self>, params: &InitUserParams) -> Result<()> {
-    msg!("init_client actuate");
-
     let mut state = ctx.accounts.state.load_init()?;
     *state = UserState::default();
     state.bump = ctx.bumps.get("state").unwrap().clone();

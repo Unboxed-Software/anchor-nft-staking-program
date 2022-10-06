@@ -12,4 +12,8 @@ pub enum LootboxError {
   InvalidVrfAccount,
   #[msg("Random mint has not been assigned yet")]
   MintNotReady,
+  #[msg("Randomness already requested")]
+  RandomnessAlreadyRequested,
+  #[msg("Uninitialized Lootbox Pointer")]
+  UninitializedLootboxPointer,
 }

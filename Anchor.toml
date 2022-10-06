@@ -2,7 +2,7 @@
 seeds = true
 skip-lint = false
 [programs.localnet]
-lootbox_program = "3vnfmoJk6zuEyXt9QfYaCp6psgwe5UL4jLRZKmxThTc9"
+lootbox_program = "Dov2VBBQ7QLexEGY83csy3G5waFKG39Qioe5YFAZwHyj"
 
 [registry]
 url = "https://api.apr.dev"
