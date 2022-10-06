@@ -44,15 +44,24 @@ describe("anchor-nft-staking", () => {
   let userState: anchor.web3.PublicKey
   let userStateBump: number
   let lootboxPointerPda: anchor.web3.PublicKey
+  let permissionBump: number
+  let switchboardStateBump: number
+  let vrfAccount: sbv2.VrfAccount
+  let switchboardStateAccount: sbv2.ProgramStateAccount
+  let permissionAccount: sbv2.PermissionAccount
 
   before(async () => {
     ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
       await setupNft(program, wallet.payer))
-    ;({ lootboxPointerPda, switchboard } = await setupSwitchboard(
-      provider,
-      lootboxProgram,
-      wallet.payer
-    ))
+    ;({
+      switchboard,
+      lootboxPointerPda,
+      permissionBump,
+      switchboardStateBump,
+      vrfAccount,
+      switchboardStateAccount,
+      permissionAccount,
+    } = await setupSwitchboard(provider, lootboxProgram, wallet.payer))
   })
 
   it("Stakes", async () => {
@@ -107,82 +116,6 @@ describe("anchor-nft-staking", () => {
   })
 
   it("init user", async () => {
-    const { unpermissionedVrfEnabled, authority, dataBuffer } =
-      await switchboard.queue.loadData()
-
-    // keypair for vrf account
-    const vrfKeypair = anchor.web3.Keypair.generate()
-
-    // find PDA used for our client state pubkey
-    ;[userState, userStateBump] = anchor.utils.publicKey.findProgramAddressSync(
-      [vrfKeypair.publicKey.toBytes(), wallet.publicKey.toBytes()],
-      lootboxProgram.programId
-    )
-
-    // create new vrf acount
-    const vrfAccount = await sbv2.VrfAccount.create(switchboard.program, {
-      keypair: vrfKeypair,
-      authority: userState, // set vrfAccount authority as PDA
-      queue: switchboard.queue,
-      callback: {
-        programId: lootboxProgram.programId,
-        accounts: [
-          { pubkey: userState, isSigner: false, isWritable: true },
-          { pubkey: vrfKeypair.publicKey, isSigner: false, isWritable: false },
-          { pubkey: lootboxPointerPda, isSigner: false, isWritable: true },
-          { pubkey: wallet.publicKey, isSigner: false, isWritable: false },
-        ],
-        ixData: new anchor.BorshInstructionCoder(lootboxProgram.idl).encode(
-          "consumeRandomness",
-          ""
-        ),
-      },
-    })
-
-    // create permissionAccount
-    const permissionAccount = await sbv2.PermissionAccount.create(
-      switchboard.program,
-      {
-        authority,
-        granter: switchboard.queue.publicKey,
-        grantee: vrfAccount.publicKey,
-      }
-    )
-
-    // If queue requires permissions to use VRF, check the correct authority was provided
-    if (!unpermissionedVrfEnabled) {
-      if (!wallet.publicKey.equals(authority)) {
-        throw new Error(
-          `queue requires PERMIT_VRF_REQUESTS and wrong queue authority provided`
-        )
-      }
-
-      await permissionAccount.set({
-        authority: wallet.payer,
-        permission: sbv2.SwitchboardPermission.PERMIT_VRF_REQUESTS,
-        enable: true,
-      })
-    }
-
-    const vrfState = await vrfAccount.loadData()
-    const queueAccount = new sbv2.OracleQueueAccount({
-      program: switchboard.program,
-      publicKey: vrfState.oracleQueue,
-    })
-
-    const queueState = await queueAccount.loadData()
-
-    const [_permissionAccount, permissionBump] =
-      sbv2.PermissionAccount.fromSeed(
-        switchboard.program,
-        queueState.authority,
-        queueAccount.publicKey,
-        vrfAccount.publicKey
-      )
-
-    const [_programStateAccount, switchboardStateBump] =
-      sbv2.ProgramStateAccount.fromSeed(switchboard.program)
-
     const tx = await lootboxProgram.methods
       .initUser({
         switchboardStateBump: switchboardStateBump,
@@ -198,28 +131,6 @@ describe("anchor-nft-staking", () => {
   })
 
   it("Chooses a mint pseudorandomly", async () => {
-    const bldAta = await getAccount(connection, tokenAddress)
-    const state = await lootboxProgram.account.userState.fetch(userState)
-
-    const vrfAccount = new sbv2.VrfAccount({
-      program: switchboard.program,
-      publicKey: state.vrf,
-    })
-    const vrfState = await vrfAccount.loadData()
-    const queueAccount = new sbv2.OracleQueueAccount({
-      program: switchboard.program,
-      publicKey: vrfState.oracleQueue,
-    })
-    const queueState = await queueAccount.loadData()
-    const [permissionAccount, permissionBump] = sbv2.PermissionAccount.fromSeed(
-      switchboard.program,
-      queueState.authority,
-      queueAccount.publicKey,
-      vrfAccount.publicKey
-    )
-    const [programStateAccount, switchboardStateBump] =
-      sbv2.ProgramStateAccount.fromSeed(switchboard.program)
-
     const mint = await createMint(
       provider.connection,
       wallet.payer,
@@ -249,6 +160,9 @@ describe("anchor-nft-staking", () => {
       program.programId
     )
 
+    const vrfState = await vrfAccount.loadData()
+    const { authority, dataBuffer } = await switchboard.queue.loadData()
+
     await lootboxProgram.methods
       .openLootbox(new BN(10))
       .accounts({
@@ -258,12 +172,12 @@ describe("anchor-nft-staking", () => {
         stakeState: stakeAccount,
         state: userState,
         vrf: vrfAccount.publicKey,
-        oracleQueue: queueAccount.publicKey,
-        queueAuthority: queueState.authority,
-        dataBuffer: queueState.dataBuffer,
+        oracleQueue: switchboard.queue.publicKey,
+        queueAuthority: authority,
+        dataBuffer: dataBuffer,
         permission: permissionAccount.publicKey,
         escrow: vrfState.escrow,
-        programState: programStateAccount.publicKey,
+        programState: switchboardStateAccount.publicKey,
         switchboardProgram: switchboard.program.programId,
         payerWallet: switchboard.payerTokenWallet,
         recentBlockhashes: anchor.web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
