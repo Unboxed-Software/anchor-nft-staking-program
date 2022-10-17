@@ -2,15 +2,15 @@
 seeds = true
 skip-lint = false
 [programs.localnet]
-anchor_nft_staking = "2uE2DSDFoz9qendAdDpFL4wQ79cX2M4m3DFGX41KQ5YX"
-lootbox_program = "6GE3ki2igpw2ZTAt6BV4pTjF5qvtCbFVQP7SGPJaEuoa"
+anchor_nft_staking = "4zfgQUQgTaHAyEi8c1tzzcorrvLPqEB6ZdJpg4t9dZBP"
+lootbox_program = "5942mns31g8zYvepfHb8TBSzGktZwyXXekwGkfNrE2u6"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "/Users/James/.config/solana/id.json"
+wallet = "/Users/blockfather/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -3,7 +3,7 @@ import {
   keypairIdentity,
   Metaplex,
 } from "@metaplex-foundation/js"
-import { createMint, getAssociatedTokenAddress } from "@solana/spl-token"
+import { createMint, getAssociatedTokenAddress } from "@solana/spl-token-real"
 import * as anchor from "@project-serum/anchor"
 
 export const setupNft = async (program, payer) => {

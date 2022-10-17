@@ -19,3 +19,5 @@ default = []
 anchor-lang = { version="0.25.0", features=["init-if-needed"] }
 anchor-spl = "0.25.0"
 anchor-nft-staking = { path = "../anchor-nft-staking", features = ["cpi"] }
+switchboard-v2 = { version = "^0.1.14", features = ["devnet"] }
+bytemuck = "1.7.2"
