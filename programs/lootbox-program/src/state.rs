@@ -5,6 +5,7 @@ pub struct LootboxPointer {
   pub mint: Pubkey,
   pub redeemable: bool,
   pub randomness_requested: bool,
+  pub available_lootbox: u64,
   pub is_initialized: bool,
 }
 

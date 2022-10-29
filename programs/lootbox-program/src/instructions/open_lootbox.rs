@@ -111,27 +111,19 @@ impl anchor_lang::Id for StakingProgram {
 
 impl OpenLootbox<'_> {
     pub fn process_instruction(ctx: &mut Context<Self>, box_number: u64) -> Result<()> {
-        let mut loot_box = 10;
-        loop {
-            if loot_box > box_number {
-                return err!(LootboxError::InvalidLootbox);
-            }
-
-            if loot_box == box_number {
-                require!(
-                    ctx.accounts.stake_state.total_earned >= box_number,
-                    LootboxError::InvalidLootbox
-                );
-                break;
-            } else {
-                loot_box = loot_box * 2;
-            }
+        if ctx.accounts.lootbox_pointer.available_lootbox == 0 {
+            ctx.accounts.lootbox_pointer.available_lootbox = 10;
         }
+        require!(
+            ctx.accounts.stake_state.total_earned >= box_number
+                && ctx.accounts.lootbox_pointer.available_lootbox == box_number,
+            LootboxError::InvalidLootbox
+        );
 
-        // require!(
-        //     !ctx.accounts.lootbox_pointer.randomness_requested,
-        //     LootboxError::RandomnessAlreadyRequested
-        // );
+        require!(
+            !ctx.accounts.lootbox_pointer.randomness_requested,
+            LootboxError::RandomnessAlreadyRequested
+        );
 
         token::burn(
             CpiContext::new(
@@ -187,6 +179,7 @@ impl OpenLootbox<'_> {
 
         ctx.accounts.lootbox_pointer.randomness_requested = true;
         ctx.accounts.lootbox_pointer.is_initialized = true;
+        ctx.accounts.lootbox_pointer.available_lootbox = box_number * 2;
 
         Ok(())
     }

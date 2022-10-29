@@ -5,10 +5,11 @@ pub struct RetrieveItem<'info> {
   #[account(mut)]
   pub user: Signer<'info>,
   #[account(
-        seeds=["lootbox".as_bytes(), user.key().as_ref()],
-        bump,
-        constraint=lootbox_pointer.is_initialized
-    )]
+      mut,
+      seeds=["lootbox".as_bytes(), user.key().as_ref()],
+      bump,
+      constraint=lootbox_pointer.is_initialized
+  )]
   pub lootbox_pointer: Account<'info, LootboxPointer>,
   #[account(
         mut,
