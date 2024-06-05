@@ -1,5 +1,5 @@
-import * as anchor from "@project-serum/anchor"
-import { Program } from "@project-serum/anchor"
+import * as anchor from "@coral-xyz/anchor"
+import { Program } from "@coral-xyz/anchor"
 import { AnchorNftStaking } from "../target/types/anchor_nft_staking"
 import { setupNft } from "./utils/setupNft"
 import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata"
@@ -24,7 +24,7 @@ describe("anchor-nft-staking", () => {
   let tokenAddress: anchor.web3.PublicKey
 
   before(async () => {
-    ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
+    ({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
       await setupNft(program, wallet.payer))
   })
 
@@ -32,7 +32,7 @@ describe("anchor-nft-staking", () => {
     // Add your test here.
     await program.methods
       .stake()
-      .accounts({
+      .accountsPartial({
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
@@ -62,7 +62,7 @@ describe("anchor-nft-staking", () => {
   it("Unstakes", async () => {
     await program.methods
       .unstake()
-      .accounts({
+      .accountsPartial({
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,

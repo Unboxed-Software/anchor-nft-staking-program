@@ -2,14 +2,15 @@
 seeds = true
 skip-lint = false
 [programs.localnet]
-anchor_nft_staking = "3CUC1Enh3GF7X1vE7ixm1Aq7cv1fTqY7UZvnDoz7X9sZ"
+anchor_nft_staking = "7X136wosjGtZXSQjnsf7qXbENUWAYrRGPppYdPVv3Z4E"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "/Users/James/.config/solana/id.json"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+testNFT = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
