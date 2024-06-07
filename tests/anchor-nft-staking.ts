@@ -1,8 +1,8 @@
 import { AnchorNftStaking } from "../target/types/anchor_nft_staking"
 import { setupNft } from "./utils/setupNft"
 import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata"
-import * as anchor from "@project-serum/anchor"
-import { Program } from "@project-serum/anchor"
+import * as anchor from "@coral-xyz/anchor"
+import { Program } from "@coral-xyz/anchor"
 import { LootboxProgram } from "../target/types/lootbox_program"
 import {
   getOrCreateAssociatedTokenAccount,
@@ -42,7 +42,7 @@ describe("anchor-nft-staking", () => {
     // Add your test here.
     await program.methods
       .stake()
-      .accounts({
+      .accountsPartial({
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
@@ -52,7 +52,7 @@ describe("anchor-nft-staking", () => {
 
     const account = await program.account.userStakeInfo.fetch(stakeStatePda)
     expect(account.stakeState.staked)
-    expect(Number(account.stakeState.totalEarned) === 0)
+    expect(Number(account.totalEarned) === 0)
   })
 
   it("Redeems", async () => {
@@ -74,7 +74,7 @@ describe("anchor-nft-staking", () => {
   it("Unstakes", async () => {
     await program.methods
       .unstake()
-      .accounts({
+      .accountsPartial({
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
@@ -119,8 +119,8 @@ describe("anchor-nft-staking", () => {
     )
 
     await lootboxProgram.methods
-      .openLootbox(new BN(10))
-      .accounts({
+      .openLootbox(new BN(11))
+      .accountsPartial({
         stakeMint: mint,
         stakeMintAta: ata.address,
         stakeState: stakeAccount,
