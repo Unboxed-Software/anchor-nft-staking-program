@@ -8,7 +8,7 @@ use state::*;
 use instructions::*;
 use error::*;
 
-declare_id!("7X136wosjGtZXSQjnsf7qXbENUWAYrRGPppYdPVv3Z4E");
+declare_id!("FdCeWWMY2VzNkj5wg7Qiwq8VEDSYjfTaLtYR5jiWfnST");
 
 #[program]
 pub mod anchor_nft_staking {
