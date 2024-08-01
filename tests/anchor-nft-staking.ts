@@ -58,7 +58,7 @@ describe("anchor-nft-staking", () => {
   it("Redeems", async () => {
     await program.methods
       .redeem()
-      .accounts({
+      .accountsPartial({
         nftTokenAccount: nft.tokenAddress,
         stakeMint: mint,
         userStakeAta: tokenAddress,
@@ -151,7 +151,7 @@ describe("anchor-nft-staking", () => {
     )
     await lootboxProgram.methods
       .retrieveItemFromLootbox()
-      .accounts({
+      .accountsPartial({
         mint: pointer.mint,
         userGearAta: gearAta,
       })
