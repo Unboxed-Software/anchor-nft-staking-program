@@ -24,7 +24,7 @@ describe("anchor-nft-staking", () => {
   let tokenAddress: anchor.web3.PublicKey
 
   before(async () => {
-    ;({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
+    ({ nft, delegatedAuthPda, stakeStatePda, mint, mintAuth, tokenAddress } =
       await setupNft(program, wallet.payer))
   })
 

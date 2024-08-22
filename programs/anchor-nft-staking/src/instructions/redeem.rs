@@ -12,8 +12,8 @@ use anchor_spl::{
 
 use crate::{
     StakeError, 
-    state::StakeState, 
-    state::UserStakeInfo
+    StakeState, 
+    UserStakeInfo
 };
 
 #[derive(Accounts)]

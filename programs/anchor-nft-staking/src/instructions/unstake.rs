@@ -20,11 +20,7 @@ use anchor_spl::{
     }
 };
 
-use crate::{
-    StakeError, 
-    state::StakeState, 
-    state::UserStakeInfo
-};
+use crate::{StakeError, StakeState, UserStakeInfo};
 
 #[derive(Accounts)]
 pub struct Unstake<'info> {
